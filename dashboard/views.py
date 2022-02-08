@@ -6,6 +6,7 @@ from re import search
 from turtle import hideturtle
 from unittest import result
 
+import bs4
 import requests
 import wikipedia
 from django.contrib import messages
@@ -244,47 +245,32 @@ def books(request):
     return render(request,'dashboard/books.html',context)
 
 
+
 def dictionary(request):
     if request.method == "POST":
         form = DashboardForm(request.POST)
-        text = request.POST['text']
-        url = "https://api.dictionaryapi.dev/api/v2/entries/en_US"+text
-        r = requests.get(url)
-        answer =r.json()
-
-        try:
-            phonetics = answer[0]['phonetics'][0]['text'],
-            audio = answer[0]['phonetics'][0]['audio'],
-            definition = answer[0]['meanings'][0]['definitions'][0]['definition'],
-            example= answer[0]['meanings'][0]['definitions'],[0]['example']
-            synoyms = answer[0]['meanings'][0]['definitions'],[0]['synoyms']
-
-            context ={
-                'form':form,
-                'input':text,
-                'phonetics':phonetics,
-                'audio':audio,
-                'definition':definition,
-                'example':example,
-                'synoyms':synoyms
-
-            }
-
-        except:
-             context ={
-                'form':form,
-                'input':''
-                }
-        
-        return render(request,"dashboard/dictionary.html",context)
-    
+        word=request.POST['text']
+        res = requests.get('https://www.dictionary.com/browse/'+word)    
+        if res:
+            soup = bs4.BeautifulSoup(res.text, 'lxml')
+            meaning = soup.find_all('div', {'value': '1'})
+            meaning1 = meaning[0].getText()
+        else:
+            word = 'Sorry, '+ word + ' Is Not Found In Our Database'
+            meaning = ''
+            meaning1 = ''
+        results = {
+            'form':form,
+            'word' : word,
+            'meaning' : meaning1,
+        }
+        return render(request, 'dashboard/dictionary.html', { 'results': results})
     else:
         form = DashboardForm()
-        context = {
+        results = {
         'form':form
     }
-    return render(request,"dashboard/dictionary.html",context)
-
+    return render(request, 'dashboard/dictionary.html', results)
 
 def wiki(request):
 
@@ -426,4 +412,3 @@ def profile(request):
 
     return render(request, "dashboard/profile.html",context)
 
-#https://www.youtube.com/watch?v=XvU0QXqDQ1Y
